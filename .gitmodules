@@ -1,0 +1,3 @@
+[submodule "notes-calendar"]
+	path = notes-calendar
+	url = https://github.com/atanas3angelov/notes-calendar
