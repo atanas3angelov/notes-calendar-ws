@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -17,27 +18,28 @@ var calendarNotes = make(map[int]DayNotes)
 
 func getDayNotes(c *gin.Context) {
 
-	year, err := strconv.Atoi(c.DefaultQuery("year", "2025"))
+	year, err := strconv.Atoi(c.Param("year"))
+
 	if err != nil {
 		c.JSON(http.StatusBadRequest, map[string]any{
 			"success": false,
-			"message": "Query param for year is missing or not a number",
+			"message": "Path param for year is missing or not a number",
 		})
 		return
 	}
 
-	month, err := strconv.Atoi(c.Query("month"))
+	month, err := strconv.Atoi(c.Param("month"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, map[string]any{
 			"success": false,
-			"message": "Query param for month is missing or not a number",
+			"message": "Path param for month is missing or not a number",
 		})
 		return
 	}
 
 	fmt.Println(year, month)
 
-	// Mock data, which should instead be collected from db
+	// Mock data, which should be collected from db instead
 	calendarNotes[3] = DayNotes{
 		Summary: []string{"go"},
 		Details: "A Tour of Go: variables & functions",
@@ -89,9 +91,61 @@ func getDayNotes(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, calendarNotes)
 }
 
+func putDayNotes(c *gin.Context) {
+
+	year, err := strconv.Atoi(c.Param("year"))
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, map[string]any{
+			"success": false,
+			"message": "Path param for year is missing or not a number",
+		})
+		return
+	}
+
+	month, err := strconv.Atoi(c.Param("month"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, map[string]any{
+			"success": false,
+			"message": "Path param for month is missing or not a number",
+		})
+		return
+	}
+
+	day, err := strconv.Atoi(c.Param("day"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, map[string]any{
+			"success": false,
+			"message": "Path param for day is missing or not a number",
+		})
+		return
+	}
+
+	fmt.Printf("Change for year: %d, month: %d, day: %d\n", year, month, day)
+
+	jsonData, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusNoContent, map[string]any{
+			"success": false,
+			"message": "Body (with JSON) for PUT request is missing",
+		})
+		return
+	}
+
+	fmt.Println(string(jsonData))
+
+	c.Status(http.StatusOK)
+}
+
 func main() {
 	router := gin.Default()
-	router.GET("/daynotes", getDayNotes)
+	router.StaticFile("/favicon.ico", "./assets/favicon.ico")
+	router.StaticFile("/preview.html", "./preview.html")
+	router.StaticFile("/notes-calendar/notes-calendar.js", "./notes-calendar/notes-calendar.js")
+	router.StaticFile("/notes-calendar/notes-calendar.css", "./notes-calendar/notes-calendar.css")
+
+	router.GET("/daynotes/:year/:month", getDayNotes)
+	router.PUT("/daynotes/:year/:month/:day", putDayNotes)
 
 	router.Run("localhost:8080")
 }
