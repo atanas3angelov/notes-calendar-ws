@@ -24,37 +24,51 @@
                 };
 
                 const saveNotesData = async(url, data) => {
-                    try {
-                        let response = await fetch(url, {
-                            method: 'PUT',
-                            hearders: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(data)
-                        });
-                        if (!response.ok) {
-                            throw new Error(`Error saving data @ ${url} with PUT. Status: ${response.status}`);
+                    if (data.summary.length > 0 && data.summary[0] || data.details) {
+                        try {
+                            let response = await fetch(url, {
+                                method: 'PUT',
+                                hearders: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(data)
+                            });
+                            if (!response.ok) {
+                                throw new Error(`Error saving data @ ${url} with PUT. Status: ${response.status}`);
+                            }
+                        }
+                        catch(error) {
+                            console.error(error);
+                        }
+                    } else {
+                        try {
+                            let response = await fetch(url, {
+                                method: 'DELETE',
+                                hearders: { 'Content-Type': 'application/json' },
+                            });
+                            if (!response.ok) {
+                                throw new Error(`Error saving data @ ${url} with DELETE. Status: ${response.status}`);
+                            }
+                        }
+                        catch(error) {
+                            console.error(error);
                         }
                     }
-                    catch(error) {
-                        console.error(error);
-                    }
+
                 };
 
                 fetchNotesData("/daynotes/" + 2025 + "/" + 12)
                     .then(notes => {
-                        if (notes) {
-                                notesCalendar = new NotesCalendar('notes-calendar', 2025, 12, notes);
+                            notesCalendar = new NotesCalendar('notes-calendar', 2025, 12, notes);
 
-                                notesCalendar.createNoteBoard('note-board');
+                            notesCalendar.createNoteBoard('note-board');
 
-                                const callbackSave = (year, month, day, summary, details) => {
+                            const callbackSave = (year, month, day, summary, details) => {
 
-                                    const updatedData = {'summary': summary, 'details': details};
+                                const updatedData = {'summary': summary, 'details': details};
 
-                                    saveNotesData("/daynotes/" + year + "/" + month + "/" + day, updatedData);
-                                };
+                                saveNotesData("/daynotes/" + year + "/" + month + "/" + day, updatedData);
+                            };
 
-                                notesCalendar.defineCallbackSave(callbackSave);
-                        }
+                            notesCalendar.defineCallbackSave(callbackSave);
                     });
             };
         </script>
