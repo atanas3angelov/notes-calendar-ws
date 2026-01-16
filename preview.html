@@ -59,6 +59,16 @@
                     .then(notes => {
                             notesCalendar = new NotesCalendar('notes-calendar', 2025, 12, notes);
 
+                            const callbackLoad = (year, month) => {
+                                
+                                fetchNotesData("/daynotes/" + year + "/" + month)
+                                    .then(notes => {
+                                        notesCalendar.reloadCalendar(notes);
+                                    });
+
+                            };
+                            notesCalendar.defineCallbackLoad(callbackLoad);
+
                             notesCalendar.createNoteBoard('note-board');
 
                             const callbackSave = (year, month, day, summary, details) => {
