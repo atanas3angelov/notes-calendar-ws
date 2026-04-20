@@ -17,7 +17,7 @@ import (
 // for security reasons read the user & pass within mongo connection string from
 // untracked repo file
 func getMongoDBconnectionString() string {
-	mongodb_connect_string_file, err := os.Open("mongodb_atlas_connection_string.txt")
+	mongodb_connect_string_file, err := os.Open("mongodb_local_connection_string.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -161,7 +161,7 @@ func getCalendarNotes(year, month int) map[int]DayNotes {
 }
 
 // Updates notes for a day (+year +month) or upserts a document (+year + month) for the day
-// !!! Make sure the note summary and details are not empty at the same time!
+// !!! Make sure the note summary and details are not empty at the same time! (should have done delete instead)
 func updateCalendarNote(year, month, day int, note DayNotes) {
 
 	client := getDBclient(getMongoDBconnectionString())
@@ -190,7 +190,7 @@ func updateCalendarNote(year, month, day int, note DayNotes) {
 		panic(errors.New("empty note"))
 	}
 
-	// if note not empty and perform the update or do an upsert!
+	// if note not empty, perform the update or do an upsert!
 	filter := bson.D{{Key: "_id", Value: id}}
 
 	update := bson.D{
@@ -214,6 +214,44 @@ func updateCalendarNote(year, month, day int, note DayNotes) {
 	} else {
 		update = append(update,
 			bson.E{"$unset", bson.M{fmt.Sprintf("days.%d.details", day): ""}})
+	}
+
+	opts := options.UpdateOne().SetUpsert(true)
+
+	_, err = coll.UpdateOne(context.TODO(), filter, update, opts)
+
+	if err != nil {
+		panic(err)
+	}
+}
+
+func updateCalendarNotes(year, month int, notes map[int]DayNotes) {
+
+	client := getDBclient(getMongoDBconnectionString())
+
+	defer func() {
+		if err := client.Disconnect(context.TODO()); err != nil {
+			panic(err)
+		}
+	}()
+
+	coll := client.
+		Database("calendar_notes").
+		Collection("notes")
+
+	id, err := strconv.Atoi(fmt.Sprintf("%d%d", year, month))
+
+	if err != nil {
+		panic(err)
+	}
+
+	// perform the update or do an upsert!
+	filter := bson.D{{Key: "_id", Value: id}}
+
+	update := bson.D{
+		bson.E{"$set", bson.M{"year": year}},   // for an upsert (if 1st note for a new month)
+		bson.E{"$set", bson.M{"month": month}}, // for an upsert (if 1st note for a new month)
+		bson.E{"$set", bson.M{"days": notes}},
 	}
 
 	opts := options.UpdateOne().SetUpsert(true)
